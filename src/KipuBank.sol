@@ -55,7 +55,7 @@ contract KipuBank {
     }
 
     function deposit() external payable {
-        if (msg.value <= 0) {
+        if (msg.value < 0.005 * 1e18) {
             revert InvalidDepositAmount();
         }
         address owner = msg.sender;
