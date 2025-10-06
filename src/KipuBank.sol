@@ -18,17 +18,17 @@ contract KipuBank {
     error InvalidWithdrawLimitPerTransactionValue();
     error InvalidBankCapAmount();
 
-    constructor(uint256 _withdrawalLimitPerTransaction, uint256 _cap) {
+    constructor(uint256 _withdrawalLimitPerTransaction, uint256 _bankCap) {
         if (_withdrawalLimitPerTransaction == 0) {
             revert InvalidWithdrawLimitPerTransactionValue();
         }
 
-        if (_cap == 0) {
+        if (_bankCap == 0) {
             revert InvalidBankCapAmount();
         }
 
         i_withdrawLimitPerTransaction = _withdrawalLimitPerTransaction;
-        i_bankCap = _cap;
+        i_bankCap = _bankCap;
     }
 
     function withdraw(uint256 _amount) external payable {
@@ -74,5 +74,13 @@ contract KipuBank {
 
     function getBalance() external view returns (uint256) {
         return address(this).balance;
+    }
+
+    function getBankCap() external view returns (uint256) {
+        return i_bankCap;
+    }
+
+    function getWithdrawLimitPerTransaction() external view returns (uint256) {
+        return i_withdrawLimitPerTransaction;
     }
 }
