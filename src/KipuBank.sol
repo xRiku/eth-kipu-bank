@@ -15,12 +15,17 @@ contract KipuBank {
     error BankCapExceeded();
     error TransactionFailed();
 
+    error InvalidWithdrawLimitPerTransactionValue();
+    error InvalidBankCapAmount();
+
     constructor(uint256 _withdrawalLimitPerTransaction, uint256 _cap) {
-        require(
-            _withdrawalLimitPerTransaction > 0,
-            "Invalid withdraw limit per transaction"
-        );
-        require(_cap > 0, "Invalid bank cap");
+        if (_withdrawalLimitPerTransaction == 0) {
+            revert InvalidWithdrawLimitPerTransactionValue();
+        }
+
+        if (_cap == 0) {
+            revert InvalidBankCapAmount();
+        }
 
         i_withdrawLimitPerTransaction = _withdrawalLimitPerTransaction;
         i_bankCap = _cap;
@@ -43,7 +48,7 @@ contract KipuBank {
 
         funds[owner] -= _amount;
 
-        (bool success, ) = payable(msg.sender).call{value: _amount}("");
+        (bool success,) = payable(msg.sender).call{value: _amount}("");
         if (!success) {
             revert TransactionFailed();
         }
