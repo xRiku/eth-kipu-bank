@@ -2,10 +2,10 @@
 pragma solidity 0.8.30;
 
 contract KipuBank {
-    uint256 public immutable i_withdrawLimitPerTransaction;
-    uint256 public immutable i_bankCap;
+    uint256 private immutable i_withdrawLimitPerTransaction;
+    uint256 private immutable i_bankCap;
 
-    address[] public owners;
+    address[] private owners;
     mapping(address => bool) isOwner;
     mapping(address => uint256) funds;
 
@@ -17,6 +17,13 @@ contract KipuBank {
 
     error InvalidWithdrawLimitPerTransactionValue();
     error InvalidBankCapAmount();
+
+    modifier onlyOwner() {
+        if (!isOwner[msg.sender]) {
+            revert("Not an owner");
+        }
+        _;
+    }
 
     constructor(uint256 _withdrawalLimitPerTransaction, uint256 _bankCap) {
         if (_withdrawalLimitPerTransaction == 0) {
@@ -31,7 +38,7 @@ contract KipuBank {
         i_bankCap = _bankCap;
     }
 
-    function withdraw(uint256 _amount) external payable {
+    function withdraw(uint256 _amount) external payable onlyOwner {
         address owner = msg.sender;
 
         if (funds[owner] <= 0) {
@@ -72,6 +79,9 @@ contract KipuBank {
         }
     }
 
+    /**
+     * View / Pure functions (Getters)
+     */
     function getBalance() external view returns (uint256) {
         return address(this).balance;
     }
@@ -82,5 +92,9 @@ contract KipuBank {
 
     function getWithdrawLimitPerTransaction() external view returns (uint256) {
         return i_withdrawLimitPerTransaction;
+    }
+
+    function verifyOwnership(address addr) external view returns (bool) {
+        return isOwner[addr];
     }
 }
