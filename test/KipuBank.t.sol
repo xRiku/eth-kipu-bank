@@ -3,7 +3,6 @@ pragma solidity 0.8.30;
 
 import {Test} from "forge-std/Test.sol";
 import {KipuBank} from "../src/KipuBank.sol";
-import {console} from "forge-std/console.sol";
 
 uint256 constant WITHDRAW_LIMIT_PER_TRANSACTION = 2 ether;
 uint256 constant BANK_CAP = 100 ether;
@@ -79,7 +78,7 @@ contract KipuBankTest is Test {
         address addr = address(0x1);
         vm.deal(addr, 1 ether);
 
-        vm.expectRevert();
+        vm.expectRevert(KipuBank.KipuBank__NotOwner.selector);
         vm.prank(addr);
         kipubank.withdraw(0.05 ether);
     }
