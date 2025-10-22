@@ -41,14 +41,22 @@ contract KipuBank {
     error KipuBank__InvalidWithdrawLimitPerTransactionValue();
     error KipuBank__InvalidBankCapAmount();
     error KipuBank__NotOwner();
+    error KipuBank__DirectDepositNotAllowed();
+    error KipuBank__UnsupportedCall();
+
+    struct TxCount {
+        uint128 deposits;
+        uint128 withdrawals;
+    }
 
     /* State variables */
     uint256 private immutable i_withdrawLimitPerTransaction;
     uint256 private immutable i_bankCap;
 
-    address[] private owners;
-    mapping(address => bool) isOwner;
-    mapping(address => uint256) funds;
+    mapping(address => bool) private isOwner;
+    mapping(address => uint256) private funds;
+    TxCount private bankTxCount;
+    mapping(address => TxCount) private ownerTxCount;
 
     /* Events */
     event OwnerRegistered(address indexed newOwner);
@@ -56,7 +64,7 @@ contract KipuBank {
     event Withdraw(address indexed from, uint256 amount, uint256 remainingBalance);
 
     /**
-     * @dev Restricts calls to registered owners. Reverts with a plain string when
+     * @dev Restricts calls to registered owners. Reverts with a custom error when
      *      the caller is not an owner to keep revert reason compact.
      */
     modifier onlyOwner() {
@@ -89,6 +97,14 @@ contract KipuBank {
         i_bankCap = _bankCap;
     }
 
+    receive() external payable {
+        revert KipuBank__DirectDepositNotAllowed();
+    }
+
+    fallback() external payable {
+        revert KipuBank__UnsupportedCall();
+    }
+
     /**
      * @notice Withdraw an amount of ETH from the caller's owned balance.
      * @dev Requires the caller to be an owner. Will revert if the owner's
@@ -101,8 +117,8 @@ contract KipuBank {
      * @custom:reverts InsufficientFunds when the caller's stored balance is zero or less than _amount.
      * @custom:reverts TransactionFailed when the external transfer to the caller fails.
      */
-    function withdraw(uint256 _amount) external payable onlyOwner {
-        address owner = msg.sender;
+    function withdraw(uint256 _amount) external onlyOwner {
+        address owner = payable(msg.sender);
         uint256 balance = funds[owner];
 
         if (balance == 0) revert KipuBank__InsufficientFunds();
@@ -110,9 +126,11 @@ contract KipuBank {
         if (balance < _amount) revert KipuBank__InsufficientFunds();
 
         funds[owner] -= _amount;
+        bankTxCount.withdrawals += 1;
+        ownerTxCount[owner].withdrawals += 1;
 
         emit Withdraw(owner, _amount, funds[owner]);
-        (bool success,) = payable(msg.sender).call{value: _amount}("");
+        (bool success,) = owner.call{value: _amount}("");
         if (!success) {
             revert KipuBank__TransactionFailed();
         }
@@ -135,11 +153,12 @@ contract KipuBank {
 
         if (!isOwner[owner]) {
             isOwner[owner] = true;
-            owners.push(owner);
             emit OwnerRegistered(owner);
         }
 
         funds[owner] += msg.value;
+        bankTxCount.deposits += 1;
+        ownerTxCount[owner].deposits += 1;
 
         if (address(this).balance > i_bankCap) {
             revert KipuBank__BankCapExceeded();
@@ -151,8 +170,12 @@ contract KipuBank {
     /**
      * View / Pure functions (Getters)
      */
-    function getBalance() external view returns (uint256) {
+    function getBankBalance() external view returns (uint256) {
         return address(this).balance;
+    }
+
+    function getUserBalance(address user) external view returns (uint256) {
+        return funds[user];
     }
 
     function getBankCap() external view returns (uint256) {
@@ -161,6 +184,15 @@ contract KipuBank {
 
     function getWithdrawLimitPerTransaction() external view returns (uint256) {
         return i_withdrawLimitPerTransaction;
+    }
+
+    function getOwnerTxCount(address owner) external view returns (uint128 deposits, uint128 withdrawals) {
+        TxCount memory txc = ownerTxCount[owner];
+        return (txc.deposits, txc.withdrawals);
+    }
+
+    function getBankTxCount() external view returns (uint128 deposits, uint128 withdrawals) {
+        return (bankTxCount.deposits, bankTxCount.withdrawals);
     }
 
     /**

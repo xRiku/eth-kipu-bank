@@ -15,7 +15,7 @@ contract KipuBankTest is Test {
     }
 
     function testGetBalance() external view {
-        assertEq(kipubank.getBalance(), 0);
+        assertEq(kipubank.getBankBalance(), 0);
     }
 
     function testGetBankCap() external view {
