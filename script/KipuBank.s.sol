@@ -10,10 +10,9 @@ contract KipuBankScript is Script {
 
     function setUp() public {}
 
-    function run() external returns (KipuBank) {
+    function run() external {
         vm.startBroadcast();
-        KipuBank kipuBank = new KipuBank(WITHDRAW_LIMIT, BANK_CAP);
+        new KipuBank(WITHDRAW_LIMIT, BANK_CAP);
         vm.stopBroadcast();
-        return kipuBank;
     }
 }

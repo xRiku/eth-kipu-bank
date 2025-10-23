@@ -203,4 +203,12 @@ contract KipuBank {
     function verifyOwnership(address addr) external view returns (bool) {
         return isOwner[addr];
     }
+
+    function bankCapacity() external view returns (uint256) {
+        return i_bankCap;
+    }
+
+    function withdrawLimit() external view returns (uint256) {
+        return i_withdrawLimitPerTransaction;
+    }
 }
